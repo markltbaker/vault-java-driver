@@ -1,7 +1,5 @@
 package com.bettercloud.vault;
 
-import lombok.Getter;
-
 import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,25 +30,15 @@ public class VaultConfig implements Serializable {
     private static final String VAULT_OPEN_TIMEOUT = "VAULT_OPEN_TIMEOUT";
     private static final String VAULT_READ_TIMEOUT = "VAULT_READ_TIMEOUT";
 
-    @Getter
     private Map<String, String> secretsEnginePathMap = new ConcurrentHashMap<>();
-    @Getter
     private String address;
-    @Getter
     private String token;
-    @Getter
     private SslConfig sslConfig;
-    @Getter
     private Integer openTimeout;
-    @Getter
     private Integer readTimeout;
-    @Getter
     private int maxRetries;
-    @Getter
     private int retryIntervalMilliseconds;
-    @Getter
     private Integer globalEngineVersion;
-    @Getter
     private String nameSpace;
     private EnvironmentLoader environmentLoader;
 
@@ -120,7 +108,10 @@ public class VaultConfig implements Serializable {
      * @return This object, with address populated, ready for additional builder-pattern method calls or else finalization with the build() method
      */
     public VaultConfig address(final String address) {
-        this.address = address;
+        this.address = address.trim();
+        if (this.address.endsWith("/")) {
+            this.address = this.address.substring(0, this.address.length() - 1);
+        }
         return this;
     }
 
@@ -151,8 +142,22 @@ public class VaultConfig implements Serializable {
      *                             "/secret/bar", "2"
      * @return This object, with secrets paths populated, ready for additional builder-pattern method calls or else finalization with the build() method
      */
-    VaultConfig secretsEnginePathMap(final Map<String, String> secretEngineVersions) {
-        this.secretsEnginePathMap = secretEngineVersions;
+    public VaultConfig secretsEnginePathMap(final Map<String, String> secretEngineVersions) {
+        this.secretsEnginePathMap = new ConcurrentHashMap<>(secretEngineVersions);
+        return this;
+    }
+    
+    /**
+     * <p>Sets the secrets Engine version be used by Vault for the provided path.</p>
+     *
+     * @param path the path to use for accessing Vault secrets.
+     *             Example "/secret/foo"
+     * @param version The key-value engine version used for this path.
+     * @return This object, with a new entry in the secrets paths map, ready for additional builder-pattern method calls or else finalization with 
+     *         the build() method
+     */
+    public VaultConfig putSecretsEngineVersionForPath(String path, String version) {
+        this.secretsEnginePathMap.put(path, version);
         return this;
     }
 
@@ -283,6 +288,46 @@ public class VaultConfig implements Serializable {
             this.sslConfig = new SslConfig().environmentLoader(this.environmentLoader).build();
         }
         return this;
+    }
+
+    public Map<String, String> getSecretsEnginePathMap() {
+        return secretsEnginePathMap;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public SslConfig getSslConfig() {
+        return sslConfig;
+    }
+
+    public Integer getOpenTimeout() {
+        return openTimeout;
+    }
+
+    public Integer getReadTimeout() {
+        return readTimeout;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public int getRetryIntervalMilliseconds() {
+        return retryIntervalMilliseconds;
+    }
+
+    public Integer getGlobalEngineVersion() {
+        return globalEngineVersion;
+    }
+
+    public String getNameSpace() {
+        return nameSpace;
     }
 
 }

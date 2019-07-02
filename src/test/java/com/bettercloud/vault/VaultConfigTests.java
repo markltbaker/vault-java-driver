@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static junit.framework.Assert.assertSame;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
@@ -97,6 +96,18 @@ public class VaultConfigTests {
     }
 
     /**
+     * Test creating a new <code>VaultConfig</code> via its constructor, ensuring that addresses are normalized to
+     * not have a trailing slash.
+     *
+     * @throws VaultException
+     */
+    @Test
+    public void testConfigConstructor_NormalizesAddress() throws VaultException {
+        final VaultConfig config = new VaultConfig().address("https://localhost:8200/").build();
+        assertEquals("https://localhost:8200", config.getAddress());
+    }
+
+    /**
      * Test creating a new <code>VaultConfig</code> via its constructor, passing null address and token values AND
      * having them unavailable in the environment variables too.  This should cause initialization failure.
      *
@@ -116,6 +127,7 @@ public class VaultConfigTests {
     @Test
     public void testConfigBuilder() throws VaultException {
         Map<String, String> testMap = new HashMap<>();
+        testMap.put("foo", "bar");
         final VaultConfig config =
                 new VaultConfig()
                         .address("address")
@@ -126,7 +138,7 @@ public class VaultConfigTests {
         assertEquals("address", config.getAddress());
         assertEquals("token", config.getToken());
         assertEquals("1", config.getGlobalEngineVersion().toString());
-        assertSame(testMap, config.getSecretsEnginePathMap());
+        assertEquals("bar", config.getSecretsEnginePathMap().get("foo"));
     }
 
     /**

@@ -10,7 +10,6 @@ import com.bettercloud.vault.response.LogicalResponse;
 import com.bettercloud.vault.response.LookupResponse;
 import com.bettercloud.vault.rest.Rest;
 import com.bettercloud.vault.rest.RestResponse;
-import lombok.Getter;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -40,23 +39,14 @@ public class Auth {
      */
     public static class TokenRequest implements Serializable {
 
-        @Getter
         private UUID id;
-        @Getter
         private List<String> polices;
-        @Getter
         private Map<String, String> meta;
-        @Getter
         private Boolean noParent;
-        @Getter
         private Boolean noDefaultPolicy;
-        @Getter
         private String ttl;
-        @Getter
         private String displayName;
-        @Getter
         private Long numUses;
-        @Getter
         private String role;
 
         /**
@@ -138,6 +128,42 @@ public class Auth {
         public TokenRequest role(final String role) {
             this.role = role;
             return this;
+        }
+
+        public UUID getId() {
+            return id;
+        }
+
+        public List<String> getPolices() {
+            return polices;
+        }
+
+        public Map<String, String> getMeta() {
+            return meta;
+        }
+
+        public Boolean getNoParent() {
+            return noParent;
+        }
+
+        public Boolean getNoDefaultPolicy() {
+            return noDefaultPolicy;
+        }
+
+        public String getTtl() {
+            return ttl;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public Long getNumUses() {
+            return numUses;
+        }
+
+        public String getRole() {
+            return role;
         }
     }
 
@@ -879,23 +905,24 @@ public class Auth {
     }
 
     /**
-     * <p>Basic login operation to authenticate to an GCP backend.  Example usage:</p>
+     * <p>Basic login operation to authenticate to an JWT backend.  Example usage:</p>
      *
      * <blockquote>
      * <pre>{@code
-     * final AuthResponse response = vault.auth().loginByGCP("dev", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+     * final AuthResponse response = vault.auth().loginByJwt("kubernetes", "dev", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
      *
      * final String token = response.getAuthClientToken();
      * }</pre>
      * </blockquote>
      *
+     * @param provider Provider of JWT token.
      * @param role The gcp role used for authentication
      * @param jwt  The JWT token for the role
      * @return The auth token, with additional response metadata
      * @throws VaultException If any error occurs, or unexpected response received from Vault
      */
     // TODO: Needs integration test coverage if possible
-    public AuthResponse loginByGCP(final String role, final String jwt) throws VaultException {
+    public AuthResponse loginByJwt(final String provider, final String role, final String jwt) throws VaultException {
         int retryCount = 0;
 
         while (true) {
@@ -903,7 +930,7 @@ public class Auth {
                 // HTTP request to Vault
                 final String requestJson = Json.object().add("role", role).add("jwt", jwt).toString();
                 final RestResponse restResponse = new Rest()
-                        .url(config.getAddress() + "/v1/auth/gcp/login")
+                        .url(config.getAddress() + "/v1/auth/" + provider + "/login")
                         .optionalHeader("X-Vault-Namespace", this.nameSpace)
                         .body(requestJson.getBytes(StandardCharsets.UTF_8))
                         .connectTimeoutSeconds(config.getOpenTimeout())
@@ -939,6 +966,50 @@ public class Auth {
                 }
             }
         }
+    }
+
+
+    /**
+     * <p>Basic login operation to authenticate to an GCP backend.  Example usage:</p>
+     *
+     * <blockquote>
+     * <pre>{@code
+     * final AuthResponse response = vault.auth().loginByGCP("dev", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+     *
+     * final String token = response.getAuthClientToken();
+     * }</pre>
+     * </blockquote>
+     *
+     * @param role The gcp role used for authentication
+     * @param jwt  The JWT token for the role
+     * @return The auth token, with additional response metadata
+     * @throws VaultException If any error occurs, or unexpected response received from Vault
+     */
+    public AuthResponse loginByGCP(final String role, final String jwt) throws VaultException {
+        return loginByJwt("gcp", role, jwt);
+    }
+
+
+    /**
+     * Basic login operation to authenticate to an kubernetes backend. Example usage:
+     *
+     * <blockquote>
+     *
+     * <pre>{@code
+     * final AuthResponse response =
+     *     vault.auth().loginByKubernetes("dev", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+     *
+     * final String token = response.getAuthClientToken();
+     * }</pre>
+     * </blockquote>
+     *
+     * @param role The kubernetes role used for authentication
+     * @param jwt The JWT token for the role, typically read from /var/run/secrets/kubernetes.io/serviceaccount/token
+     * @return The auth token, with additional response metadata
+     * @throws VaultException If any error occurs, or unexpected response received from Vault
+     */
+    public AuthResponse loginByKubernetes(final String role, final String jwt) throws VaultException {
+        return loginByJwt("kubernetes", role, jwt);
     }
 
     /**
